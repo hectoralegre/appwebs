@@ -1,0 +1,1554 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Desconfío - Juego de Cartas</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: white;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .game-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            margin-bottom: 10px;
+        }
+
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 10px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 10px;
+        }
+
+        .deck-info {
+            text-align: center;
+            background: rgba(0,0,0,0.2);
+            padding: 10px;
+            border-radius: 8px;
+            margin: 0 20px;
+        }
+
+        .card-deal-animation {
+            animation: dealCard 0.5s ease-out forwards;
+        }
+
+        @keyframes dealCard {
+            0% {
+                opacity: 0;
+                transform: translateY(-50px) scale(0.5);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .card-destroy {
+            animation: destroyCard 1s ease-out forwards;
+        }
+
+        @keyframes destroyCard {
+            0% {
+                opacity: 1;
+                transform: scale(1) rotate(0deg);
+            }
+            50% {
+                opacity: 0.7;
+                transform: scale(1.1) rotate(10deg);
+            }
+            100% {
+                opacity: 0;
+                transform: scale(0) rotate(180deg);
+            }
+        }
+
+        .chain-number {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            background: #FFD700;
+            color: #000;
+            border-radius: 50%;
+            width: 25px;
+            height: 25px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 12px;
+            border: 2px solid #FFF;
+        }
+
+        .player-info {
+            text-align: center;
+        }
+
+        .life-bar {
+            width: 150px;
+            height: 20px;
+            background: #333;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 5px auto;
+        }
+
+        .life-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff4444, #ffaa44, #44ff44);
+            transition: width 0.3s ease;
+        }
+
+        .damage-effect {
+            position: absolute;
+            font-size: 2em;
+            font-weight: bold;
+            color: #ff4444;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            pointer-events: none;
+            animation: damageFloat 2s ease-out forwards;
+        }
+
+        @keyframes damageFloat {
+            0% {
+                opacity: 1;
+                transform: translateY(0px) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-50px) scale(1.2);
+            }
+        }
+
+        .damage-breakdown {
+            position: absolute;
+            top: -60px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.9);
+            padding: 10px;
+            border-radius: 8px;
+            border: 2px solid #ff4444;
+            min-width: 200px;
+            animation: damageBreakdownShow 3s ease-out forwards;
+            z-index: 1000;
+        }
+
+        @keyframes damageBreakdownShow {
+            0% {
+                opacity: 0;
+                transform: translateX(-50%) scale(0.5);
+            }
+            20% {
+                opacity: 1;
+                transform: translateX(-50%) scale(1);
+            }
+            80% {
+                opacity: 1;
+                transform: translateX(-50%) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translateX(-50%) scale(0.8);
+            }
+        }
+
+        .damage-cards {
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+            margin-bottom: 5px;
+            flex-wrap: wrap;
+        }
+
+        .mini-card {
+            width: 30px;
+            height: 40px;
+            border-radius: 4px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7em;
+            font-weight: bold;
+            color: white;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+        }
+
+        .mini-card-agua { background: linear-gradient(135deg, #2196F3, #1976D2); }
+        .mini-card-fuego { background: linear-gradient(135deg, #FF5722, #D32F2F); }
+        .mini-card-tierra { background: linear-gradient(135deg, #8BC34A, #689F38); }
+        .mini-card-viento { background: linear-gradient(135deg, #FFC107, #F57C00); }
+        .mini-card-rayo { background: linear-gradient(135deg, #9C27B0, #7B1FA2); }
+
+        .damage-total {
+            text-align: center;
+            font-size: 0.9em;
+            font-weight: bold;
+            color: #ff4444;
+        }
+
+        .card-effect {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 3em;
+            pointer-events: none;
+            animation: cardEffect 1.5s ease-out forwards;
+        }
+
+        @keyframes cardEffect {
+            0% {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(0.5);
+            }
+            50% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1.2);
+            }
+            100% {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(1);
+            }
+        }
+
+        .element-particle {
+            position: absolute;
+            font-size: 1.5em;
+            pointer-events: none;
+            animation: particleFloat 2s ease-out forwards;
+        }
+
+        @keyframes particleFloat {
+            0% {
+                opacity: 1;
+                transform: translateY(0px) rotate(0deg);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-80px) rotate(360deg);
+            }
+        }
+
+        .battlefield {
+            min-height: 300px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .played-cards {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            width: 80px;
+            height: 120px;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.4);
+        }
+
+        .card-selected {
+            border: 3px solid #FFD700;
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.8);
+            transform: translateY(-10px) scale(1.05);
+        }
+
+        .card-selectable {
+            cursor: pointer;
+        }
+
+        .card-selectable:hover {
+            border: 2px solid #FFF;
+        }
+
+        .card-back {
+            background: linear-gradient(135deg, #4a4a4a, #2a2a2a);
+            color: white;
+        }
+
+        .card-agua { background: linear-gradient(135deg, #2196F3, #1976D2); }
+        .card-fuego { background: linear-gradient(135deg, #FF5722, #D32F2F); }
+        .card-tierra { background: linear-gradient(135deg, #8BC34A, #689F38); }
+        .card-viento { background: linear-gradient(135deg, #FFC107, #F57C00); }
+        .card-rayo { background: linear-gradient(135deg, #9C27B0, #7B1FA2); }
+
+        .card-damage {
+            font-weight: bold;
+            font-size: 1.2em;
+            margin-top: 5px;
+        }
+
+        .card-element {
+            font-size: 0.8em;
+            text-transform: capitalize;
+        }
+
+        .player-hand {
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            align-items: center;
+            margin: 20px 0;
+        }
+
+        .element-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .element-btn, .action-btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            color: white;
+            font-size: 14px;
+        }
+
+        .element-btn:hover, .action-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .btn-agua { background: linear-gradient(135deg, #2196F3, #1976D2); }
+        .btn-fuego { background: linear-gradient(135deg, #FF5722, #D32F2F); }
+        .btn-tierra { background: linear-gradient(135deg, #8BC34A, #689F38); }
+        .btn-viento { background: linear-gradient(135deg, #FFC107, #F57C00); }
+        .btn-rayo { background: linear-gradient(135deg, #9C27B0, #7B1FA2); }
+
+        .action-btn {
+            background: linear-gradient(135deg, #FF6B6B, #EE5A24);
+            font-size: 16px;
+            padding: 15px 25px;
+        }
+
+        .action-btn:disabled {
+            background: #666;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        .game-log {
+            background: rgba(0,0,0,0.4);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 20px 0;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 5px;
+            border-left: 3px solid #4CAF50;
+            padding-left: 10px;
+        }
+
+        .menu-screen, .game-over-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .menu-screen h1, .game-over-screen h1 {
+            font-size: 3em;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+        }
+
+        .start-btn, .restart-btn {
+            padding: 20px 40px;
+            font-size: 1.5em;
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .start-btn:hover, .restart-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .rules {
+            max-width: 600px;
+            text-align: left;
+            margin: 20px;
+            padding: 20px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 10px;
+        }
+
+        .rules h3 {
+            color: #FFD700;
+            margin-bottom: 10px;
+        }
+
+        .rules ul {
+            margin-left: 20px;
+        }
+
+        .rules li {
+            margin-bottom: 5px;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        @media (max-width: 768px) {
+            .game-info {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .player-hand {
+                gap: 3px;
+            }
+
+            .card {
+                width: 60px;
+                height: 90px;
+                font-size: 0.8em;
+            }
+
+            .element-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="menu-screen" id="menuScreen">
+            <h1>🃏 DESCONFÍO 🃏</h1>
+            <div class="rules">
+                <h3>📋 Reglas del Juego:</h3>
+                <ul>
+                    <li>• Cada jugador tiene 20 puntos de vida y 6 cartas en mano</li>
+                    <li>• Coloca cartas boca abajo declarando un elemento</li>
+                    <li>• Puedes "desconfiar" si crees que el oponente miente</li>
+                    <li>• Elementos: Agua > Fuego > Tierra > Viento > Rayo > Agua</li>
+                    <li>• Si mientes y te descubren, recibes daño de ambas cartas</li>
+                    <li>• Si no mientes, combaten los elementos</li>
+                    <li>• ¡Reduce la vida del oponente a 0 para ganar!</li>
+                </ul>
+            </div>
+            <div style="margin: 20px 0;">
+                <h3>Selecciona Dificultad:</h3>
+                <button class="start-btn" onclick="startGame(1)" style="margin: 5px; background: linear-gradient(135deg, #4CAF50, #45a049);">🟢 Fácil (IA: 20 HP)</button>
+                <button class="start-btn" onclick="startGame(2)" style="margin: 5px; background: linear-gradient(135deg, #FF9800, #F57C00);">🟡 Medio (IA: 35 HP)</button>
+                <button class="start-btn" onclick="startGame(3)" style="margin: 5px; background: linear-gradient(135deg, #F44336, #D32F2F);">🔴 Difícil (IA: 50 HP)</button>
+            </div>
+        </div>
+
+    <div class="game-over-screen hidden" id="gameOverScreen">
+            <h1 id="gameOverTitle">¡JUEGO TERMINADO!</h1>
+            <p id="gameOverMessage"></p>
+            <div style="margin: 20px 0;">
+                <h3>Selecciona Dificultad:</h3>
+                <button class="restart-btn" onclick="restartGame(1)" style="margin: 5px; background: linear-gradient(135deg, #4CAF50, #45a049);">🟢 Fácil (20 HP)</button>
+                <button class="restart-btn" onclick="restartGame(2)" style="margin: 5px; background: linear-gradient(135deg, #FF9800, #F57C00);">🟡 Medio (35 HP)</button>
+                <button class="restart-btn" onclick="restartGame(3)" style="margin: 5px; background: linear-gradient(135deg, #F44336, #D32F2F);">🔴 Difícil (50 HP)</button>
+            </div>
+        </div>
+
+    <div class="game-container">
+        <div class="header">
+            <h1>🃏 DESCONFÍO</h1>
+        </div>
+
+        <div class="game-info">
+            <div class="player-info">
+                <h3>🤖 IA Oponente</h3>
+                <div class="life-bar">
+                    <div class="life-fill" id="aiLifeBar" style="width: 100%"></div>
+                </div>
+                <div id="aiLife">25 / 25 ❤️</div>
+                <div>Cartas: <span id="aiCards">6</span></div>
+            </div>
+
+            <div class="deck-info">
+                <h3>📚 Mazos</h3>
+                <div>Jugador: <span id="playerDeck">34</span></div>
+                <div>IA: <span id="aiDeck">34</span></div>
+            </div>
+
+            <div class="player-info">
+                <h3>👤 Jugador</h3>
+                <div class="life-bar">
+                    <div class="life-fill" id="playerLifeBar" style="width: 100%"></div>
+                </div>
+                <div id="playerLife">20 / 20 ❤️</div>
+                <div>Cartas: <span id="playerCards">6</span></div>
+            </div>
+        </div>
+
+        <div class="battlefield">
+            <div id="aiPlayArea">
+                <h4>Área de la IA</h4>
+                <div class="played-cards" id="aiPlayedCards"></div>
+            </div>
+
+            <div id="battleResult"></div>
+
+            <div id="playerPlayArea">
+                <h4>Tu Área</h4>
+                <div class="played-cards" id="playerPlayedCards"></div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <div id="gameStatus">Tu turno - Selecciona elemento a declarar</div>
+            
+            <div class="element-buttons" id="elementButtons">
+                <button class="element-btn btn-agua" onclick="selectElement('agua')">🌊 Agua</button>
+                <button class="element-btn btn-fuego" onclick="selectElement('fuego')">🔥 Fuego</button>
+                <button class="element-btn btn-tierra" onclick="selectElement('tierra')">🌱 Tierra</button>
+                <button class="element-btn btn-viento" onclick="selectElement('viento')">💨 Viento</button>
+                <button class="element-btn btn-rayo" onclick="selectElement('rayo')">⚡ Rayo</button>
+            </div>
+
+            <div style="display: flex; gap: 10px;">
+                <button class="action-btn" id="distrustBtn" onclick="distrust()" disabled>🚫 DESCONFÍO</button>
+                <button class="action-btn" id="noDistrustBtn" onclick="noDistrust()" disabled style="background: linear-gradient(135deg, #4CAF50, #45a049);">✅ NO DESCONFÍO</button>
+            </div>
+        </div>
+
+        <div class="player-hand" id="playerHand"></div>
+
+        <div class="game-log">
+            <h4>📜 Registro del Juego</h4>
+            <div id="gameLog"></div>
+        </div>
+    </div>
+
+    <script>
+        // Configuración del juego
+        const ELEMENTS = ['agua', 'fuego', 'tierra', 'viento', 'rayo'];
+        const ELEMENT_ADVANTAGES = {
+            agua: 'fuego',
+            fuego: 'tierra',
+            tierra: 'viento',
+            viento: 'rayo',
+            rayo: 'agua'
+        };
+        const ELEMENT_ICONS = {
+            agua: '🌊',
+            fuego: '🔥',
+            tierra: '🌱',
+            viento: '💨',
+            rayo: '⚡'
+        };
+
+        // Estado del juego
+        let gameState = {
+            playerLife: 20,
+            aiLife: 20,
+            aiMaxLife: 20,
+            aiLevel: 1,
+            playerHand: [],
+            aiHand: [],
+            playerDeck: [],
+            aiDeck: [],
+            currentTurn: 'player',
+            lastPlayedCards: [],
+            gamePhase: 'play', // 'play', 'distrust', 'combat'
+            selectedElement: null,
+            canDistrust: false,
+            selectedCardIndex: null,
+            cardsOnTable: []
+        };
+
+        // Clase para las cartas
+        class Card {
+            constructor(element, damage) {
+                this.element = element;
+                this.damage = damage;
+                this.id = Math.random().toString(36).substring(2, 9);
+            }
+        }
+
+        // Generar mazo
+        function createDeck() {
+            const deck = [];
+            for (let i = 0; i < 40; i++) {
+                const element = ELEMENTS[Math.floor(Math.random() * ELEMENTS.length)];
+                const damage = Math.floor(Math.random() * 10) + 1;
+                deck.push(new Card(element, damage));
+            }
+            return shuffleDeck(deck);
+        }
+
+        function shuffleDeck(deck) {
+            const shuffled = [...deck];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
+
+        // Inicializar juego
+        function startGame(level = 1) {
+            document.getElementById('menuScreen').classList.add('hidden');
+            
+            // Configurar nivel de dificultad
+            gameState.aiLevel = level;
+            switch(level) {
+                case 1:
+                    gameState.aiLife = 20;
+                    gameState.aiMaxLife = 20;
+                    logMessage("🟢 Dificultad: FÁCIL - IA con 20 HP");
+                    break;
+                case 2:
+                    gameState.aiLife = 35;
+                    gameState.aiMaxLife = 35;
+                    logMessage("🟡 Dificultad: MEDIO - IA con 35 HP");
+                    break;
+                case 3:
+                    gameState.aiLife = 50;
+                    gameState.aiMaxLife = 50;
+                    logMessage("🔴 Dificultad: DIFÍCIL - IA con 50 HP");
+                    break;
+            }
+            
+            // Generar mazos
+            gameState.playerDeck = createDeck();
+            gameState.aiDeck = createDeck();
+            
+            // Repartir cartas iniciales con animación
+            gameState.playerHand = [];
+            gameState.aiHand = [];
+            
+            // Reset estado
+            gameState.playerLife = 20;
+            gameState.currentTurn = 'player';
+            gameState.gamePhase = 'play';
+            gameState.lastPlayedCards = [];
+            gameState.canDistrust = false;
+            gameState.selectedCardIndex = null;
+            gameState.cardsOnTable = [];
+            
+            // Repartir cartas con animación
+            dealInitialCards();
+            
+            updateUI();
+            logMessage("🎮 ¡Juego iniciado! Es tu turno.");
+        }
+
+        // Repartir cartas iniciales con animación
+        function dealInitialCards() {
+            for (let i = 0; i < 6; i++) {
+                setTimeout(() => {
+                    if (gameState.playerDeck.length > 0) {
+                        gameState.playerHand.push(gameState.playerDeck.shift());
+                    }
+                    if (gameState.aiDeck.length > 0) {
+                        gameState.aiHand.push(gameState.aiDeck.shift());
+                    }
+                    updateUI();
+                    
+                    // Aplicar animación a las cartas recién repartidas
+                    const playerCards = document.querySelectorAll('#playerHand .card');
+                    if (playerCards[i]) {
+                        playerCards[i].classList.add('card-deal-animation');
+                    }
+                }, i * 200);
+            }
+        }
+
+        // Seleccionar elemento
+        function selectElement(element) {
+            if (gameState.currentTurn !== 'player' || gameState.gamePhase !== 'play') return;
+            
+            gameState.selectedElement = element;
+            playPlayerCard(element);
+        }
+
+        // Jugador juega carta
+        function playPlayerCard(declaredElement) {
+            // Verificar si el jugador tiene cartas
+            if (gameState.playerHand.length === 0 && gameState.playerDeck.length === 0) {
+                logMessage("👤 Te quedaste sin cartas.");
+                checkGameEnd();
+                return;
+            }
+            
+            // Si no hay cartas en mano pero sí en mazo, rellenar primero
+            if (gameState.playerHand.length === 0 && gameState.playerDeck.length > 0) {
+                refillHand('player');
+            }
+            
+            if (gameState.playerHand.length === 0) return;
+            
+            // Si hay una carta seleccionada, usar esa; si no, tomar aleatoria
+            let cardIndex;
+            if (gameState.selectedCardIndex !== null && gameState.selectedCardIndex !== undefined) {
+                cardIndex = gameState.selectedCardIndex;
+            } else {
+                cardIndex = Math.floor(Math.random() * gameState.playerHand.length);
+            }
+            
+            const playedCard = gameState.playerHand.splice(cardIndex, 1)[0];
+            playedCard.declaredElement = declaredElement;
+            playedCard.player = 'player';
+            
+            gameState.lastPlayedCards = [playedCard];
+            gameState.cardsOnTable.push(playedCard);
+            gameState.selectedCardIndex = null;
+            
+            // Crear efecto visual para la carta del jugador
+            createCardEffect(playedCard, 'player');
+            
+            logMessage(`🎯 Jugaste una carta declarando: ${ELEMENT_ICONS[declaredElement]} ${declaredElement.toUpperCase()}`);
+            
+            // Verificar si necesita rellenar mano
+            if (gameState.playerHand.length === 0) {
+                refillHand('player');
+            }
+            
+            // Turno de la IA
+            gameState.currentTurn = 'ai';
+            gameState.canDistrust = true;
+            updateUI();
+            
+            setTimeout(() => {
+                aiTurn();
+            }, 1500);
+        }
+
+        // Turno de la IA
+        function aiTurn() {
+            // Verificar si la IA tiene cartas para jugar
+            if (gameState.aiHand.length === 0 && gameState.aiDeck.length === 0) {
+                logMessage("🤖 La IA se quedó sin cartas.");
+                checkGameEnd();
+                return;
+            }
+            
+            // IA inteligente basada en nivel
+            let distrustChance = 0.2; // Básico
+            let shouldDistrust = false;
+            
+            if (gameState.canDistrust && gameState.lastPlayedCards.length > 0) {
+                const lastCard = gameState.lastPlayedCards[gameState.lastPlayedCards.length - 1];
+                
+                switch(gameState.aiLevel) {
+                    case 1: // Fácil - 20% desconfiar aleatório
+                        distrustChance = 0.2;
+                        break;
+                    case 2: // Medio - 35% con algo de lógica
+                        distrustChance = 0.35;
+                        // Desconfía más si el jugador ha mentido antes
+                        if (gameState.cardsOnTable.length > 2) {
+                            distrustChance = 0.5;
+                        }
+                        break;
+                    case 3: // Difícil - 45% con lógica avanzada
+                        distrustChance = 0.45;
+                        // Analiza patrones del jugador
+                        if (gameState.cardsOnTable.length > 3) {
+                            distrustChance = 0.6;
+                        }
+                        // Desconfía más cuando tiene poca vida
+                        if (gameState.aiLife < gameState.aiMaxLife * 0.5) {
+                            distrustChance += 0.15;
+                        }
+                        break;
+                }
+                
+                shouldDistrust = Math.random() < distrustChance;
+            }
+            
+            if (shouldDistrust && gameState.canDistrust) {
+                logMessage("🤖 La IA dice: ¡DESCONFÍO!");
+                resolveDistrust('ai');
+                return;
+            }
+            
+            // Si no hay cartas en mano pero sí en mazo, rellenar primero
+            if (gameState.aiHand.length === 0 && gameState.aiDeck.length > 0) {
+                refillHand('ai');
+            }
+            
+            // Si aún no tiene cartas, terminar turno
+            if (gameState.aiHand.length === 0) {
+                logMessage("🤖 La IA no tiene cartas para jugar.");
+                gameState.currentTurn = 'player';
+                gameState.canDistrust = false;
+                gameState.gamePhase = 'play';
+                updateUI();
+                return;
+            }
+            
+            // La IA juega una carta
+            const aiCard = gameState.aiHand.splice(0, 1)[0];
+            const declaredElement = ELEMENTS[Math.floor(Math.random() * ELEMENTS.length)];
+            aiCard.declaredElement = declaredElement;
+            aiCard.player = 'ai';
+            
+            gameState.lastPlayedCards.push(aiCard);
+            gameState.cardsOnTable.push(aiCard);
+            
+            // Crear efecto visual para la carta de la IA
+            createCardEffect(aiCard, 'ai');
+            
+            logMessage(`🤖 La IA jugó una carta declarando: ${ELEMENT_ICONS[declaredElement]} ${declaredElement.toUpperCase()}`);
+            
+            // Verificar si necesita rellenar mano
+            if (gameState.aiHand.length === 0) {
+                refillHand('ai');
+            }
+            
+            // Habilitar desconfío para el jugador
+            gameState.currentTurn = 'player';
+            gameState.canDistrust = true;
+            gameState.gamePhase = 'distrust';
+            updateUI();
+        }
+
+        // Desconfiar
+        function distrust() {
+            if (!gameState.canDistrust) return;
+            
+            logMessage("👤 ¡DESCONFÍAS!");
+            resolveDistrust('player');
+        }
+
+        // No desconfiar - continuar el juego
+        function noDistrust() {
+            if (!gameState.canDistrust) return;
+            
+            logMessage("👤 No desconfías. Continuando el juego...");
+            
+            // Limpiar la última ronda de cartas jugadas, pero mantener todas en mesa
+            gameState.lastPlayedCards = [];
+            gameState.canDistrust = false;
+            gameState.gamePhase = 'play';
+            
+            // El que no desconfía puede seguir jugando primero
+            // Si fue el jugador quien no desconfió, sigue siendo su turno
+            // Si fue la IA, el turno pasa al jugador
+            if (gameState.currentTurn === 'player') {
+                // El jugador no desconfió, sigue su turno
+                gameState.currentTurn = 'player';
+            } else {
+                // La IA no desconfió, turno del jugador
+                gameState.currentTurn = 'player';
+            }
+            
+            updateUI();
+        }
+
+        // Resolver desconfianza
+        function resolveDistrust(distruster) {
+            logMessage("🔍 Revelando todas las cartas en la mesa...");
+            
+            // Revisar todas las cartas en mesa para encontrar mentirosos
+            let liarFound = false;
+            let mentirosos = [];
+            
+            for (let card of gameState.cardsOnTable) {
+                const isLying = card.element !== card.declaredElement;
+                logMessage(`📋 Carta de ${card.player === 'player' ? 'Jugador' : 'IA'}: ${ELEMENT_ICONS[card.element]} ${card.element.toUpperCase()} (${card.damage} daño) - Declaró: ${card.declaredElement.toUpperCase()} ${isLying ? '❌ MENTÍA' : '✅ Verdad'}`);
+                
+                if (isLying) {
+                    liarFound = true;
+                    mentirosos.push(card);
+                }
+            }
+            
+            if (liarFound) {
+                // Hay mentirosos - solo ellos reciben el daño total de todas las cartas (usamos elementos reales)
+                logMessage("💥 Se encontraron mentirosos. Solo los mentirosos recibirán daño.");
+                
+                let playerDamage = 0;
+                let aiDamage = 0;
+                
+                // Calcular daño total de todas las cartas para los mentirosos
+                let totalDamageFromAllCards = 0;
+                for (let card of gameState.cardsOnTable) {
+                    totalDamageFromAllCards += card.damage;
+                }
+                
+                // Solo los mentirosos reciben todo el daño
+                for (let card of mentirosos) {
+                    if (card.player === 'player') {
+                        playerDamage = totalDamageFromAllCards;
+                    } else {
+                        aiDamage = totalDamageFromAllCards;
+                    }
+                }
+                
+                if (playerDamage > 0) {
+                    gameState.playerLife = Math.max(0, gameState.playerLife - playerDamage);
+                    createDamageEffect('player', playerDamage, gameState.cardsOnTable);
+                    logMessage(`💥 Jugador recibe ${playerDamage} de daño por mentir (daño total de todas las cartas).`);
+                }
+                if (aiDamage > 0) {
+                    gameState.aiLife = Math.max(0, gameState.aiLife - aiDamage);
+                    createDamageEffect('ai', aiDamage, gameState.cardsOnTable);
+                    logMessage(`💥 IA recibe ${aiDamage} de daño por mentir (daño total de todas las cartas).`);
+                }
+                
+            } else {
+                // Nadie mintió - resolver cadena de combates usando elementos reales
+                logMessage("⚔️ Nadie mintió. ¡Resolviendo cadena de combates con elementos reales!");
+                resolveChainCombatWithRealElements(gameState.cardsOnTable);
+                
+                // El que desconfió sin razón recibe penalización adicional
+                const penaltyDamage = 3;
+                const penaltyCard = [{element: 'rayo', damage: penaltyDamage}]; // Carta ficticia para mostrar penalización
+                if (distruster === 'player') {
+                    gameState.playerLife = Math.max(0, gameState.playerLife - penaltyDamage);
+                    createDamageEffect('player', penaltyDamage, penaltyCard);
+                    logMessage(`⚠️ Jugador recibe ${penaltyDamage} de daño adicional por desconfiar sin motivo.`);
+                } else {
+                    gameState.aiLife = Math.max(0, gameState.aiLife - penaltyDamage);
+                    createDamageEffect('ai', penaltyDamage, penaltyCard);
+                    logMessage(`⚠️ IA recibe ${penaltyDamage} de daño adicional por desconfiar sin motivo.`);
+                }
+            }
+            
+            // Limpiar mesa y continuar
+            gameState.cardsOnTable = [];
+            gameState.lastPlayedCards = [];
+            gameState.canDistrust = false;
+            gameState.gamePhase = 'play';
+            gameState.currentTurn = 'player';
+            
+            // Verificar fin del juego
+            if (checkGameEnd()) return;
+            
+            updateUI();
+        }
+
+        // Resolver cadena de combates usando elementos reales (para cuando no hay mentirosos)
+        function resolveChainCombatWithRealElements(cards) {
+            if (cards.length < 2) return;
+            
+            let totalPlayerDamage = 0;
+            let totalAIDamage = 0;
+            
+            // Combatir cartas en pares usando elementos reales
+            for (let i = 0; i < cards.length - 1; i += 2) {
+                const card1 = cards[i];
+                const card2 = cards[i + 1];
+                
+                if (card1 && card2) {
+                    const winner = getElementWinner(card1.element, card2.element);
+                    const damage1 = card1.damage;
+                    const damage2 = card2.damage;
+                    const totalDamage = damage1 + damage2;
+                    
+                    if (winner === 1) {
+                        // card1 gana - el dueño de card2 recibe el daño
+                        if (card2.player === 'player') {
+                            totalPlayerDamage += totalDamage;
+                        } else {
+                            totalAIDamage += totalDamage;
+                        }
+                        logMessage(`⚔️ ${ELEMENT_ICONS[card1.element]} ${card1.element.toUpperCase()} (${card1.player === 'player' ? 'Jugador' : 'IA'}) vence a ${ELEMENT_ICONS[card2.element]} ${card2.element.toUpperCase()} (${card2.player === 'player' ? 'Jugador' : 'IA'})! Daño: ${totalDamage}`);
+                        animateCardDestroy(card2);
+                    } else if (winner === 2) {
+                        // card2 gana - el dueño de card1 recibe el daño
+                        if (card1.player === 'player') {
+                            totalPlayerDamage += totalDamage;
+                        } else {
+                            totalAIDamage += totalDamage;
+                        }
+                        logMessage(`⚔️ ${ELEMENT_ICONS[card2.element]} ${card2.element.toUpperCase()} (${card2.player === 'player' ? 'Jugador' : 'IA'}) vence a ${ELEMENT_ICONS[card1.element]} ${card1.element.toUpperCase()} (${card1.player === 'player' ? 'Jugador' : 'IA'})! Daño: ${totalDamage}`);
+                        animateCardDestroy(card1);
+                    } else {
+                        logMessage(`🤝 Empate entre ${ELEMENT_ICONS[card1.element]} ${card1.element.toUpperCase()} y ${ELEMENT_ICONS[card2.element]} ${card2.element.toUpperCase()}. Nadie recibe daño.`);
+                    }
+                }
+            }
+            
+            // Aplicar daño total acumulado
+            if (totalPlayerDamage > 0) {
+                gameState.playerLife = Math.max(0, gameState.playerLife - totalPlayerDamage);
+                const playerDamageCards = cards.filter(card => card.player === 'ai' || card.element !== card.declaredElement);
+                createDamageEffect('player', totalPlayerDamage, playerDamageCards);
+                logMessage(`💥 Jugador recibe ${totalPlayerDamage} de daño total de los combates.`);
+            }
+            if (totalAIDamage > 0) {
+                gameState.aiLife = Math.max(0, gameState.aiLife - totalAIDamage);
+                const aiDamageCards = cards.filter(card => card.player === 'player' || card.element !== card.declaredElement);
+                createDamageEffect('ai', totalAIDamage, aiDamageCards);
+                logMessage(`💥 IA recibe ${totalAIDamage} de daño total de los combates.`);
+            }
+        }
+
+        // Resolver cadena de combates
+        function resolveChainCombat(cards) {
+            if (cards.length < 2) return;
+            
+            let totalPlayerDamage = 0;
+            let totalAIDamage = 0;
+            
+            // Combatir cartas en pares
+            for (let i = 0; i < cards.length - 1; i += 2) {
+                const card1 = cards[i];
+                const card2 = cards[i + 1];
+                
+                if (card1 && card2) {
+                    const winner = getElementWinner(card1.element, card2.element);
+                    const damage1 = card1.damage;
+                    const damage2 = card2.damage;
+                    const totalDamage = damage1 + damage2;
+                    
+                    if (winner === 1) {
+                        // card1 gana
+                        if (card2.player === 'player') {
+                            totalPlayerDamage += totalDamage;
+                        } else {
+                            totalAIDamage += totalDamage;
+                        }
+                        logMessage(`⚔️ ${ELEMENT_ICONS[card1.element]} ${card1.element.toUpperCase()} vence a ${ELEMENT_ICONS[card2.element]} ${card2.element.toUpperCase()}! Daño: ${totalDamage}`);
+                        animateCardDestroy(card2);
+                    } else if (winner === 2) {
+                        // card2 gana
+                        if (card1.player === 'player') {
+                            totalPlayerDamage += totalDamage;
+                        } else {
+                            totalAIDamage += totalDamage;
+                        }
+                        logMessage(`⚔️ ${ELEMENT_ICONS[card2.element]} ${card2.element.toUpperCase()} vence a ${ELEMENT_ICONS[card1.element]} ${card1.element.toUpperCase()}! Daño: ${totalDamage}`);
+                        animateCardDestroy(card1);
+                    } else {
+                        logMessage(`🤝 Empate entre ${ELEMENT_ICONS[card1.element]} ${card1.element.toUpperCase()} y ${ELEMENT_ICONS[card2.element]} ${card2.element.toUpperCase()}.`);
+                    }
+                }
+            }
+            
+            // Aplicar daño total
+            if (totalPlayerDamage > 0) {
+                gameState.playerLife = Math.max(0, gameState.playerLife - totalPlayerDamage);
+                logMessage(`💥 Jugador recibe ${totalPlayerDamage} de daño total de los combates.`);
+            }
+            if (totalAIDamage > 0) {
+                gameState.aiLife = Math.max(0, gameState.aiLife - totalAIDamage);
+                logMessage(`💥 IA recibe ${totalAIDamage} de daño total de los combates.`);
+            }
+        }
+
+        // Determinar ganador entre dos elementos
+        function getElementWinner(element1, element2) {
+            if (ELEMENT_ADVANTAGES[element1] === element2) {
+                return 1; // element1 gana
+            } else if (ELEMENT_ADVANTAGES[element2] === element1) {
+                return 2; // element2 gana
+            } else {
+                return 0; // empate
+            }
+        }
+
+        // Resolver combate de elementos
+        function resolveCombat(cards) {
+            if (cards.length !== 2) return;
+            
+            const playerCard = cards.find(c => c.player === 'player');
+            const aiCard = cards.find(c => c.player === 'ai');
+            
+            const playerElement = playerCard.element;
+            const aiElement = aiCard.element;
+            
+            let winner = null;
+            let totalDamage = playerCard.damage + aiCard.damage;
+            
+            if (ELEMENT_ADVANTAGES[playerElement] === aiElement) {
+                // Jugador gana
+                winner = 'player';
+                dealDamage('ai', totalDamage);
+                logMessage(`🏆 ${ELEMENT_ICONS[playerElement]} ${playerElement.toUpperCase()} vence a ${ELEMENT_ICONS[aiElement]} ${aiElement.toUpperCase()}! La IA recibe ${totalDamage} de daño.`);
+            } else if (ELEMENT_ADVANTAGES[aiElement] === playerElement) {
+                // IA gana
+                winner = 'ai';
+                dealDamage('player', totalDamage);
+                logMessage(`🏆 ${ELEMENT_ICONS[aiElement]} ${aiElement.toUpperCase()} vence a ${ELEMENT_ICONS[playerElement]} ${playerElement.toUpperCase()}! Recibes ${totalDamage} de daño.`);
+            } else {
+                // Empate
+                logMessage(`🤝 Empate entre ${ELEMENT_ICONS[playerElement]} ${playerElement.toUpperCase()} y ${ELEMENT_ICONS[aiElement]} ${aiElement.toUpperCase()}. Nadie recibe daño.`);
+            }
+        }
+
+        // Infligir daño
+        function dealDamage(target, damage, damageSource = null) {
+            if (target === 'player') {
+                gameState.playerLife = Math.max(0, gameState.playerLife - damage);
+                createDamageEffect('player', damage, damageSource);
+            } else {
+                gameState.aiLife = Math.max(0, gameState.aiLife - damage);
+                createDamageEffect('ai', damage, damageSource);
+            }
+        }
+
+        // Crear efecto de daño
+        function createDamageEffect(target, damage, damageSource = null) {
+            const targetElement = target === 'player' ? 
+                document.querySelector('.player-info') : 
+                document.querySelector('.player-info:first-child');
+            
+            const damageElement = document.createElement('div');
+            damageElement.className = 'damage-effect';
+            damageElement.textContent = `-${damage}`;
+            damageElement.style.left = '50%';
+            damageElement.style.top = '50%';
+            
+            targetElement.style.position = 'relative';
+            targetElement.appendChild(damageElement);
+            
+            // Crear breakdown de daño si hay fuente
+            if (damageSource && damageSource.length > 0) {
+                const breakdownElement = document.createElement('div');
+                breakdownElement.className = 'damage-breakdown';
+                
+                const cardsContainer = document.createElement('div');
+                cardsContainer.className = 'damage-cards';
+                
+                damageSource.forEach(card => {
+                    const miniCard = document.createElement('div');
+                    miniCard.className = `mini-card mini-card-${card.element}`;
+                    miniCard.innerHTML = `
+                        <div style="font-size: 0.6em;">${ELEMENT_ICONS[card.element]}</div>
+                        <div>${card.damage}</div>
+                    `;
+                    cardsContainer.appendChild(miniCard);
+                });
+                
+                const totalElement = document.createElement('div');
+                totalElement.className = 'damage-total';
+                totalElement.textContent = `Total: -${damage} HP`;
+                
+                breakdownElement.appendChild(cardsContainer);
+                breakdownElement.appendChild(totalElement);
+                targetElement.appendChild(breakdownElement);
+                
+                setTimeout(() => {
+                    breakdownElement.remove();
+                }, 3000);
+            }
+            
+            // Crear partículas de daño
+            for (let i = 0; i < 5; i++) {
+                setTimeout(() => {
+                    createParticle(targetElement, '💥');
+                }, i * 100);
+            }
+            
+            setTimeout(() => {
+                damageElement.remove();
+            }, 2000);
+        }
+
+        // Crear efecto de carta
+        function createCardEffect(card, player) {
+            const targetArea = player === 'player' ? 
+                document.getElementById('playerPlayArea') : 
+                document.getElementById('aiPlayArea');
+            
+            const effectElement = document.createElement('div');
+            effectElement.className = 'card-effect';
+            effectElement.textContent = ELEMENT_ICONS[card.declaredElement];
+            
+            targetArea.style.position = 'relative';
+            targetArea.appendChild(effectElement);
+            
+            // Crear partículas del elemento
+            for (let i = 0; i < 3; i++) {
+                setTimeout(() => {
+                    createParticle(targetArea, ELEMENT_ICONS[card.declaredElement]);
+                }, i * 200);
+            }
+            
+            setTimeout(() => {
+                effectElement.remove();
+            }, 1500);
+        }
+
+        // Crear partículas
+        function createParticle(container, icon) {
+            const particle = document.createElement('div');
+            particle.className = 'element-particle';
+            particle.textContent = icon;
+            particle.style.left = Math.random() * 100 + '%';
+            particle.style.top = Math.random() * 100 + '%';
+            
+            container.appendChild(particle);
+            
+            setTimeout(() => {
+                particle.remove();
+            }, 2000);
+        }
+
+        // Robar cartas
+        function drawCards(player, amount) {
+            for (let i = 0; i < amount; i++) {
+                if (player === 'player' && gameState.playerDeck.length > 0) {
+                    gameState.playerHand.push(gameState.playerDeck.shift());
+                } else if (player === 'ai' && gameState.aiDeck.length > 0) {
+                    gameState.aiHand.push(gameState.aiDeck.shift());
+                }
+            }
+        }
+
+        // Rellenar mano del jugador a 6 cartas (o las que queden)
+        function refillHand(player) {
+            const targetHandSize = 6;
+            if (player === 'player') {
+                const cardsNeeded = targetHandSize - gameState.playerHand.length;
+                const cardsAvailable = Math.min(cardsNeeded, gameState.playerDeck.length);
+                for (let i = 0; i < cardsAvailable; i++) {
+                    gameState.playerHand.push(gameState.playerDeck.shift());
+                }
+                if (cardsAvailable > 0) {
+                    logMessage(`🃏 Tomaste ${cardsAvailable} cartas del mazo.`);
+                }
+            } else {
+                const cardsNeeded = targetHandSize - gameState.aiHand.length;
+                const cardsAvailable = Math.min(cardsNeeded, gameState.aiDeck.length);
+                for (let i = 0; i < cardsAvailable; i++) {
+                    gameState.aiHand.push(gameState.aiDeck.shift());
+                }
+                if (cardsAvailable > 0) {
+                    logMessage(`🤖 La IA tomó ${cardsAvailable} cartas del mazo.`);
+                }
+            }
+        }
+
+        // Verificar fin del juego
+        function checkGameEnd() {
+            if (gameState.playerLife <= 0) {
+                endGame('ai');
+                return true;
+            } else if (gameState.aiLife <= 0) {
+                endGame('player');
+                return true;
+            }
+            
+            // Verificar si ambos jugadores se quedan sin cartas en mazo y mano
+            const playerOutOfCards = gameState.playerHand.length === 0 && gameState.playerDeck.length === 0;
+            const aiOutOfCards = gameState.aiHand.length === 0 && gameState.aiDeck.length === 0;
+            
+            if (playerOutOfCards && aiOutOfCards) {
+                // Gana quien tenga más vida
+                if (gameState.playerLife > gameState.aiLife) {
+                    endGame('player');
+                } else if (gameState.aiLife > gameState.playerLife) {
+                    endGame('ai');
+                } else {
+                    // Empate
+                    endGame('tie');
+                }
+                return true;
+            }
+            
+            return false;
+        }
+
+        // Finalizar juego
+        function endGame(winner) {
+            const gameOverScreen = document.getElementById('gameOverScreen');
+            const gameOverTitle = document.getElementById('gameOverTitle');
+            const gameOverMessage = document.getElementById('gameOverMessage');
+            
+            const difficultyText = gameState.aiLevel === 1 ? 'FÁCIL' : gameState.aiLevel === 2 ? 'MEDIO' : 'DIFÍCIL';
+            
+            if (winner === 'player') {
+                gameOverTitle.textContent = '🏆 ¡VICTORIA!';
+                gameOverMessage.textContent = `¡Has derrotado a la IA en modo ${difficultyText}! Vida final: ${gameState.playerLife} vs ${gameState.aiLife}`;
+                playSound('victory');
+            } else if (winner === 'ai') {
+                gameOverTitle.textContent = '💀 DERROTA';
+                gameOverMessage.textContent = `La IA te ha vencido en modo ${difficultyText}. Vida final: ${gameState.playerLife} vs ${gameState.aiLife}`;
+                playSound('defeat');
+            } else if (winner === 'tie') {
+                gameOverTitle.textContent = '🤝 EMPATE';
+                gameOverMessage.textContent = `¡Empate en modo ${difficultyText}! Vida final: ${gameState.playerLife} vs ${gameState.aiLife}`;
+                playSound('victory');
+            }
+            
+            gameOverScreen.classList.remove('hidden');
+            logMessage(`🏁 Juego terminado. Resultado: ${winner === 'player' ? 'Jugador gana' : winner === 'ai' ? 'IA gana' : 'Empate'}`);
+        }
+
+        // Reiniciar juego
+        function restartGame(level = 1) {
+            document.getElementById('gameOverScreen').classList.add('hidden');
+            
+            // Limpiar log
+            document.getElementById('gameLog').innerHTML = '';
+            
+            // Iniciar con el nivel seleccionado
+            startGame(level);
+        }
+
+        // Animar destrucción de carta
+        function animateCardDestroy(card) {
+            // Esta función se ejecuta cuando una carta es derrotada
+            // El efecto visual se mostrará en la próxima actualización de UI
+            setTimeout(() => {
+                const cardElements = document.querySelectorAll('.card-back');
+                cardElements.forEach(element => {
+                    if (element.innerHTML.includes(card.declaredElement)) {
+                        element.classList.add('card-destroy');
+                        setTimeout(() => {
+                            element.style.visibility = 'hidden';
+                        }, 1000);
+                    }
+                });
+            }, 100);
+        }
+
+        // Actualizar interfaz
+        function updateUI() {
+            // Actualizar vida
+            const playerLifePercent = (gameState.playerLife / 20) * 100;
+            const aiLifePercent = (gameState.aiLife / gameState.aiMaxLife) * 100;
+            
+            document.getElementById('playerLifeBar').style.width = `${playerLifePercent}%`;
+            document.getElementById('aiLifeBar').style.width = `${aiLifePercent}%`;
+            document.getElementById('playerLife').textContent = `${gameState.playerLife} / 20 ❤️`;
+            document.getElementById('aiLife').textContent = `${gameState.aiLife} / ${gameState.aiMaxLife} ❤️`;
+            
+            // Actualizar cartas en mazo
+            document.getElementById('playerDeck').textContent = gameState.playerDeck.length;
+            document.getElementById('aiDeck').textContent = gameState.aiDeck.length;
+            
+            // Actualizar cartas en mano
+            document.getElementById('playerCards').textContent = gameState.playerHand.length;
+            document.getElementById('aiCards').textContent = gameState.aiHand.length;
+            
+            // Actualizar estado del juego
+            let statusText = '';
+            if (gameState.gamePhase === 'play' && gameState.currentTurn === 'player') {
+                statusText = '🎯 Tu turno - Selecciona elemento a declarar';
+            } else if (gameState.gamePhase === 'distrust' && gameState.currentTurn === 'player') {
+                statusText = '🤔 ¿Desconfías de la IA?';
+            } else {
+                statusText = '🤖 Turno de la IA...';
+            }
+            document.getElementById('gameStatus').textContent = statusText;
+            
+            // Actualizar botones
+            const elementButtons = document.querySelectorAll('.element-btn');
+            const distrustBtn = document.getElementById('distrustBtn');
+            const noDistrustBtn = document.getElementById('noDistrustBtn');
+            
+            elementButtons.forEach(btn => {
+                btn.disabled = gameState.currentTurn !== 'player' || gameState.gamePhase !== 'play';
+            });
+            
+            distrustBtn.disabled = !gameState.canDistrust || gameState.currentTurn !== 'player';
+            noDistrustBtn.disabled = !gameState.canDistrust || gameState.currentTurn !== 'player';
+            
+            // Mostrar mano del jugador
+            displayPlayerHand();
+            
+            // Mostrar cartas jugadas
+            displayPlayedCards();
+        }
+
+        // Mostrar mano del jugador
+        function displayPlayerHand() {
+            const handDiv = document.getElementById('playerHand');
+            handDiv.innerHTML = '<h4>🃏 Tu Mano:</h4>';
+            
+            gameState.playerHand.forEach((card, index) => {
+                const cardDiv = document.createElement('div');
+                let cardClass = `card card-${card.element}`;
+                
+                // Agregar clases para selección si es el turno del jugador
+                if (gameState.currentTurn === 'player' && gameState.gamePhase === 'play') {
+                    cardClass += ' card-selectable';
+                    if (gameState.selectedCardIndex === index) {
+                        cardClass += ' card-selected';
+                    }
+                }
+                
+                cardDiv.className = cardClass;
+                cardDiv.innerHTML = `
+                    <div class="card-element">${ELEMENT_ICONS[card.element]} ${card.element}</div>
+                    <div class="card-damage">${card.damage}</div>
+                `;
+                
+                // Agregar evento click para seleccionar carta
+                if (gameState.currentTurn === 'player' && gameState.gamePhase === 'play') {
+                    cardDiv.onclick = () => selectCard(index);
+                }
+                
+                handDiv.appendChild(cardDiv);
+            });
+        }
+
+        // Seleccionar carta de la mano
+        function selectCard(index) {
+            if (gameState.currentTurn !== 'player' || gameState.gamePhase !== 'play') return;
+            
+            // Toggle selection
+            if (gameState.selectedCardIndex === index) {
+                gameState.selectedCardIndex = null;
+            } else {
+                gameState.selectedCardIndex = index;
+            }
+            
+            updateUI();
+        }
+
+        // Mostrar cartas jugadas
+        function displayPlayedCards() {
+            const playerPlayedDiv = document.getElementById('playerPlayedCards');
+            const aiPlayedDiv = document.getElementById('aiPlayedCards');
+            
+            playerPlayedDiv.innerHTML = '';
+            aiPlayedDiv.innerHTML = '';
+            
+            // Mostrar todas las cartas en mesa con números
+            gameState.cardsOnTable.forEach((card, index) => {
+                const cardDiv = document.createElement('div');
+                cardDiv.className = 'card card-back';
+                cardDiv.style.position = 'relative';
+                cardDiv.innerHTML = `
+                    <div style="font-size: 1.5em;">🃏</div>
+                    <div style="font-size: 0.8em;">${card.declaredElement}</div>
+                    <div class="chain-number">${index + 1}</div>
+                `;
+                
+                if (card.player === 'player') {
+                    playerPlayedDiv.appendChild(cardDiv);
+                } else {
+                    aiPlayedDiv.appendChild(cardDiv);
+                }
+            });
+        }
+
+        // Registrar mensaje
+        function logMessage(message) {
+            const logDiv = document.getElementById('gameLog');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.textContent = message;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        // Efectos de sonido simples
+        function playSound(type) {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            if (type === 'victory') {
+                oscillator.frequency.setValueAtTime(523.25, audioContext.currentTime);
+                oscillator.frequency.setValueAtTime(659.25, audioContext.currentTime + 0.1);
+                oscillator.frequency.setValueAtTime(783.99, audioContext.currentTime + 0.2);
+            } else if (type === 'defeat') {
+                oscillator.frequency.setValueAtTime(300, audioContext.currentTime);
+                oscillator.frequency.setValueAtTime(250, audioContext.currentTime + 0.1);
+                oscillator.frequency.setValueAtTime(200, audioContext.currentTime + 0.2);
+            }
+            
+            gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.3);
+        }
+
+        // Auto-continuar si no se desconfía
+        function autoPass() {
+            if (gameState.gamePhase === 'distrust' && gameState.currentTurn === 'player') {
+                setTimeout(() => {
+                    if (gameState.canDistrust) {
+                        logMessage("⏱️ Tiempo agotado. No desconfías.");
+                        // Continuar combate sin desconfianza
+                        resolveCombat(gameState.lastPlayedCards.slice(-2));
+                        gameState.lastPlayedCards = [];
+                        gameState.canDistrust = false;
+                        gameState.gamePhase = 'play';
+                        gameState.currentTurn = 'player';
+                        updateUI();
+                    }
+                }, 5000);
+            }
+        }
+
+        // Inicializar cuando se carga la página
+        window.addEventListener('DOMContentLoaded', () => {
+            // El juego está listo para empezar
+            logMessage("🎮 Bienvenido a Desconfío. Presiona 'COMENZAR JUEGO' para empezar.");
+        });
+    </script>
+</body>
+</html>
